@@ -50,44 +50,35 @@ class ScreenMode:
         self.win.setWindowState(self.win.windowState() | Qt.WindowFullScreen)
 
 
-class ImgWatch(QWidget):
+class ImageLoader:
 
-    def __init__(self, interval):
-        super().__init__()
-
-        self.screen_mode = ScreenMode(self)
-
+    def __init__(self, win, interval):
+        self.win = win
         self.image_source_url = None
         self.network_reply = None
         self.instant_reload = False
-        self.mpos = QPoint()
-        self.pixmap = QPixmap()
 
         self.netmgr = QNetworkAccessManager()
         self.netmgr.finished.connect(self._download_finished)
 
-        self.timer = QTimer(self)
+        self.timer = QTimer(self.win)
         self.timer.timeout.connect(self.reload_image)
         self.timer.start(interval)
 
-        self.setWindowTitle('QImgWatch')
-        self.resize(1280, 720)
-        self.setStyleSheet("background-color: black;")
+    def set_url(self, url):
+        self.image_source_url = url
+        self.reload_image()
 
     def _download_finished(self, reply):
         assert reply == self.network_reply
         data = self.network_reply.readAll()
-        self.pixmap.loadFromData(data)
-        self.repaint()
+        self.win.pixmap.loadFromData(data)
+        self.win.repaint()
         self.network_reply = None
 
         if self.instant_reload:
             self.instant_reload = False
             self.reload_image()
-
-    def set_image_source_url(self, url):
-        self.image_source_url = url
-        self.reload_image()
 
     def reload_image(self):
         if self.network_reply is None:
@@ -95,6 +86,25 @@ class ImgWatch(QWidget):
             self.network_reply = self.netmgr.get(req)
         else:
             self.instant_reload = True
+
+
+class ImgWatch(QWidget):
+
+    def __init__(self, interval):
+        super().__init__()
+
+        self.screen_mode = ScreenMode(self)
+        self.image_loader = ImageLoader(self, interval)
+
+        self.mpos = QPoint()
+        self.pixmap = QPixmap()
+
+        self.setWindowTitle('QImgWatch')
+        self.resize(1280, 720)
+        self.setStyleSheet("background-color: black;")
+
+    def set_image_source_url(self, url):
+        self.image_loader.set_url(url)
 
     def keyPressEvent(self, ev):
         if ev.key() == Qt.Key_F11 or ev.key() == Qt.Key_F:
