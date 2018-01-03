@@ -34,6 +34,7 @@ class ImgWatch(QWidget):
         self.image_source_url = None
         self.network_reply = None
         self.instant_reload = False
+        self.mpos = QPoint()
 
         self.netmgr = QNetworkAccessManager()
         self.netmgr.finished.connect(self._download_finished)
@@ -84,6 +85,15 @@ class ImgWatch(QWidget):
 
     def mouseDoubleClickEvent(self, ev):
         self.fullscreen_toggle()
+
+    def mousePressEvent(self, ev):
+        self.mpos = ev.pos()
+
+    def mouseMoveEvent(self, ev):
+        if ev.buttons() & Qt.LeftButton:
+            diff = ev.pos() - self.mpos
+            newpos = self.pos() + diff
+            self.move(newpos)
 
     def fullscreen_toggle(self):
         if self.is_fullscreen():
