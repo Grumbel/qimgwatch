@@ -1,3 +1,4 @@
 *~
+/.pylint/
 /qimgwatch.egg-info
 __pycache__/
