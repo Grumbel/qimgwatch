@@ -117,7 +117,9 @@ def main(argv):
     app = QApplication(sys.argv)
     win = ImgWatch(interval_msec)
     win.set_image_source_url(args.URL[0])
-    win.fullscreen()
+
+    if args.fullscreen:
+        win.fullscreen()
 
     # allow Ctrl-C to close the app
     signal.signal(signal.SIGINT, signal.SIG_DFL)
