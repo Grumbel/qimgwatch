@@ -26,10 +26,35 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 import signal
 
 
+class ScreenMode:
+
+    def __init__(self, win):
+        self.win = win
+
+    def fullscreen_toggle(self):
+        if self.is_fullscreen():
+            self.window()
+        else:
+            self.fullscreen()
+
+    def is_fullscreen(self):
+        return self.win.windowState() & Qt.WindowFullScreen
+
+    def window(self):
+        self.win.unsetCursor()
+        self.win.setWindowState(self.win.windowState() & ~Qt.WindowFullScreen)
+
+    def fullscreen(self):
+        self.win.setCursor(Qt.BlankCursor)
+        self.win.setWindowState(self.win.windowState() | Qt.WindowFullScreen)
+
+
 class ImgWatch(QWidget):
 
     def __init__(self, interval):
         super().__init__()
+
+        self.screen_mode = ScreenMode(self)
 
         self.image_source_url = None
         self.network_reply = None
@@ -38,7 +63,7 @@ class ImgWatch(QWidget):
 
         self.netmgr = QNetworkAccessManager()
         self.netmgr.finished.connect(self._download_finished)
-        self.setGeometry(0, 0, 1280, 720)
+        self.resize(1280, 720)
 
         self.setWindowTitle('QImgWatch')
 
@@ -76,15 +101,15 @@ class ImgWatch(QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_F11 or e.key() == Qt.Key_F:
-            self.fullscreen_toggle()
+            self.screen_mode.fullscreen_toggle()
         elif e.key() == Qt.Key_Escape:
-            if self.is_fullscreen():
-                self.window_mode()
+            if self.screen_mode.is_fullscreen():
+                self.window()
         elif e.key() == Qt.Key_Q:
             self.close()
 
     def mouseDoubleClickEvent(self, ev):
-        self.fullscreen_toggle()
+        self.screen_mode.fullscreen_toggle()
 
     def mousePressEvent(self, ev):
         self.mpos = ev.pos()
@@ -94,23 +119,6 @@ class ImgWatch(QWidget):
             diff = ev.pos() - self.mpos
             newpos = self.pos() + diff
             self.move(newpos)
-
-    def fullscreen_toggle(self):
-        if self.is_fullscreen():
-            self.window_mode()
-        else:
-            self.fullscreen_mode()
-
-    def is_fullscreen(self):
-        return self.windowState() & Qt.WindowFullScreen
-
-    def window_mode(self):
-        self.unsetCursor()
-        self.setWindowState(self.windowState() & ~Qt.WindowFullScreen)
-
-    def fullscreen_mode(self):
-        self.setCursor(Qt.BlankCursor)
-        self.setWindowState(self.windowState() | Qt.WindowFullScreen)
 
     def paintEvent(self, ev):
         if self.pixmap.isNull():
@@ -152,7 +160,7 @@ def main(argv):
     win.set_image_source_url(args.URL[0])
 
     if args.fullscreen:
-        win.fullscreen_mode()
+        win.screen_mode.fullscreen()
 
     # allow Ctrl-C to close the app
     signal.signal(signal.SIGINT, signal.SIG_DFL)
