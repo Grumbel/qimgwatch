@@ -34,10 +34,8 @@ class ImgWatch(QWidget):
         self.image_source_url = None
 
         self.setGeometry(0, 0, 1280, 720)
-        state = self.windowState()
 
-        self.setWindowTitle('Webcam')
-        self.setCursor(Qt.BlankCursor)
+        self.setWindowTitle('QImgWatch')
 
         self.setStyleSheet("background-color: black;")
 
@@ -61,12 +59,25 @@ class ImgWatch(QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_F11 or e.key() == Qt.Key_F:
-            state = self.windowState()
-            self.setWindowState(state ^ Qt.WindowFullScreen)
+            self.fullscreen_toggle()
+
+    def mouseDoubleClickEvent(self, ev):
+        self.fullscreen_toggle()
+
+    def fullscreen_toggle(self):
+        state = self.windowState()
+
+        if state & Qt.WindowFullScreen:
+            self.unsetCursor()
+            self.setWindowState(state & ~Qt.WindowFullScreen)
+        else:
+            self.setCursor(Qt.BlankCursor)
+            self.setWindowState(state | Qt.WindowFullScreen)
 
     def fullscreen(self):
         state = self.windowState()
         self.setWindowState(state | Qt.WindowFullScreen)
+        self.setCursor(Qt.BlankCursor)
 
     def paintEvent(self, ev):
         if self.pixmap.isNull():
