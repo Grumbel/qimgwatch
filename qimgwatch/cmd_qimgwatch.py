@@ -18,12 +18,13 @@
 
 
 import argparse
+import signal
 import sys
+
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import Qt, QTimer, QPoint, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-import signal
 
 
 class ScreenMode:
@@ -60,22 +61,18 @@ class ImgWatch(QWidget):
         self.network_reply = None
         self.instant_reload = False
         self.mpos = QPoint()
+        self.pixmap = QPixmap()
 
         self.netmgr = QNetworkAccessManager()
         self.netmgr.finished.connect(self._download_finished)
-        self.resize(1280, 720)
-
-        self.setWindowTitle('QImgWatch')
-
-        self.setStyleSheet("background-color: black;")
-
-        self.pixmap = QPixmap()
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.reload_image)
         self.timer.start(interval)
 
-        self.show()
+        self.setWindowTitle('QImgWatch')
+        self.resize(1280, 720)
+        self.setStyleSheet("background-color: black;")
 
     def _download_finished(self, reply):
         assert reply == self.network_reply
@@ -99,13 +96,13 @@ class ImgWatch(QWidget):
         else:
             self.instant_reload = True
 
-    def keyPressEvent(self, e):
-        if e.key() == Qt.Key_F11 or e.key() == Qt.Key_F:
+    def keyPressEvent(self, ev):
+        if ev.key() == Qt.Key_F11 or ev.key() == Qt.Key_F:
             self.screen_mode.fullscreen_toggle()
-        elif e.key() == Qt.Key_Escape:
-            if self.screen_mode.is_fullscreen():
+        elif ev.key() == Qt.Key_Escape:
+            if self.screen_modev.is_fullscreen():
                 self.window()
-        elif e.key() == Qt.Key_Q:
+        elif ev.key() == Qt.Key_Q:
             self.close()
 
     def mouseDoubleClickEvent(self, ev):
@@ -166,6 +163,7 @@ def main(argv):
     # allow Ctrl-C to close the app
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+    win.show()
     sys.exit(app.exec_())
 
 
