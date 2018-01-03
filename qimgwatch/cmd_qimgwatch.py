@@ -49,6 +49,10 @@ class ImgWatch(QWidget):
 
         self.show()
 
+    def set_image_source_url(self, url):
+        self.image_source_url = url
+        self.reload_image()
+
     def reload_image(self):
         url = self.image_source_url
         data = urllib.request.urlopen(url).read()
@@ -101,7 +105,7 @@ def main(argv):
 
     app = QApplication(sys.argv)
     win = ImgWatch(interval_msec)
-    win.image_source_url = args.URL[0]
+    win.set_image_source_url(args.URL[0])
     win.fullscreen()
 
     # allow Ctrl-C to close the app
