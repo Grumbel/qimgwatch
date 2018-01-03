@@ -19,8 +19,8 @@
 
 import argparse
 import sys
-from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QSizePolicy
-from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QBrush
+from PyQt5.QtWidgets import QWidget, QApplication
+from PyQt5.QtGui import QPainter, QPixmap
 from PyQt5.QtCore import Qt, QTimer, QPoint, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 import signal
@@ -141,7 +141,8 @@ class ImgWatch(QWidget):
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description="Image viewer that automatically reloads the image at a given interval")
+    parser = argparse.ArgumentParser(
+        description="Image viewer that automatically reloads the image at a given interval")
     parser.add_argument("URL", nargs=1)
     parser.add_argument("-n", "--interval", metavar="SECONDS", type=float, default=0.5,
                         help="Seconds to wait between updates")
