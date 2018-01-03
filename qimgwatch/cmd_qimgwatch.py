@@ -18,11 +18,11 @@
 
 
 import argparse
-import urllib.request
 import sys
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QSizePolicy
 from PyQt5.QtGui import QPainter, QColor, QFont, QPixmap, QBrush
-from PyQt5.QtCore import Qt, QTimer, QPoint
+from PyQt5.QtCore import Qt, QTimer, QPoint, QUrl
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 import signal
 
 
@@ -32,7 +32,11 @@ class ImgWatch(QWidget):
         super().__init__()
 
         self.image_source_url = None
+        self.network_reply = None
+        self.instant_reload = False
 
+        self.netmgr = QNetworkAccessManager()
+        self.netmgr.finished.connect(self._download_finished)
         self.setGeometry(0, 0, 1280, 720)
 
         self.setWindowTitle('QImgWatch')
@@ -47,15 +51,27 @@ class ImgWatch(QWidget):
 
         self.show()
 
+    def _download_finished(self, reply):
+        assert reply == self.network_reply
+        data = self.network_reply.readAll()
+        self.pixmap.loadFromData(data)
+        self.repaint()
+        self.network_reply = None
+
+        if self.instant_reload:
+            self.instant_reload = False
+            self.reload_image()
+
     def set_image_source_url(self, url):
         self.image_source_url = url
         self.reload_image()
 
     def reload_image(self):
-        url = self.image_source_url
-        data = urllib.request.urlopen(url).read()
-        self.pixmap.loadFromData(data)
-        self.repaint()
+        if self.network_reply is None:
+            req = QNetworkRequest(QUrl(self.image_source_url))
+            self.network_reply = self.netmgr.get(req)
+        else:
+            self.instant_reload = True
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_F11 or e.key() == Qt.Key_F:
