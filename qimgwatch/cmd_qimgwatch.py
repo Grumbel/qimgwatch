@@ -74,6 +74,7 @@ class ImageLoader:
         data = self.network_reply.readAll()
         self.win.pixmap.loadFromData(data)
         self.win.repaint()
+        self.network_reply.deleteLater()
         self.network_reply = None
 
         if self.instant_reload:
