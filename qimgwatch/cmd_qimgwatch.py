@@ -23,9 +23,10 @@ import sys
 import datetime
 import logging
 import os
+import collections
 
 from PyQt5.QtWidgets import QWidget, QApplication
-from PyQt5.QtGui import QPainter, QPixmap
+from PyQt5.QtGui import QPainter, QPixmap, QImage
 from PyQt5.QtCore import Qt, QTimer, QPoint, QUrl
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
@@ -49,7 +50,7 @@ class ScreenMode:
         self.win.setWindowState(self.win.windowState() & ~Qt.WindowFullScreen)
 
     def fullscreen(self):
-        self.win.setCursor(Qt.BlankCursor)
+        # self.win.setCursor(Qt.BlankCursor)
         self.win.setWindowState(self.win.windowState() | Qt.WindowFullScreen)
 
 
@@ -98,7 +99,8 @@ class ImageLoader:
     def _download_finished(self, reply):
         assert reply == self.network_reply
         data = self.network_reply.readAll()
-        self.win.pixmap.loadFromData(data)
+        self.win.update_pixmap(data)
+        self.save_image(data)
         self.win.repaint()
         self.network_reply.deleteLater()
         self.network_reply = None
@@ -117,7 +119,7 @@ class ImageLoader:
 
 class ImgWatch(QWidget):
 
-    def __init__(self, loader):
+    def __init__(self, loader, history):
         super().__init__()
 
         self.screen_mode = ScreenMode(self)
@@ -130,8 +132,21 @@ class ImgWatch(QWidget):
         self.resize(1280, 720)
         self.setStyleSheet("background-color: black;")
 
-    def set_image_source_url(self, url):
-        self.image_loader.set_url(url)
+        if history:
+            self.pixmap_history = collections.deque(maxlen=history)
+        else:
+            self.pixmap_history = None
+        self.pixmap_idx = None
+
+        self.setMouseTracking(True)
+
+    def update_pixmap(self, data):
+        if not self.pixmap.isNull() and self.pixmap_history is not None:
+            self.pixmap_history.append(self.pixmap)
+
+        self.pixmap = QPixmap()
+        image = QImage.fromData(data)
+        self.pixmap = QPixmap.fromImage(image)
 
     def keyPressEvent(self, ev):
         if ev.key() == Qt.Key_F11 or ev.key() == Qt.Key_F:
@@ -154,24 +169,53 @@ class ImgWatch(QWidget):
             newpos = self.pos() + diff
             self.move(newpos)
 
+        if self.pixmap_history is not None:
+            if ev.pos().y() > self.height() - 200:
+                w = self.width() // self.pixmap_history.maxlen
+                idx = ev.pos().x() // w
+                idx = max(0, min(idx, self.pixmap_history.maxlen))
+                if self.pixmap_idx != idx:
+                    self.pixmap_idx = idx
+                    self.repaint()
+            else:
+                self.pixmap_idx = None
+
     def paintEvent(self, ev):
         if self.pixmap.isNull():
             return
 
         painter = QPainter(self)
-        # painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
-        sap = self.pixmap.width() / self.pixmap.height()
+        painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
+
+
+        if self.pixmap_idx is None or self.pixmap_history is None:
+            pixmap = self.pixmap
+        else:
+            if 0 <= self.pixmap_idx < len(self.pixmap_history):
+                pixmap = self.pixmap_history[self.pixmap_idx]
+            else:
+                pixmap = self.pixmap
+
+        sap = pixmap.width() / pixmap.height()
         tap = self.width() / self.height()
         if sap > tap:
             th = self.width() / sap
             painter.drawPixmap(0, self.height() // 2 - th // 2, self.width(), th,
-                               self.pixmap,
-                               0, 0, self.pixmap.width(), self.pixmap.height())
+                               pixmap,
+                               0, 0, pixmap.width(), pixmap.height())
         else:
             tw = sap * self.height()
             painter.drawPixmap(self.width() // 2 - tw // 2, 0, tw, self.height(),
-                               self.pixmap,
-                               0, 0, self.pixmap.width(), self.pixmap.height())
+                               pixmap,
+                               0, 0, pixmap.width(), pixmap.height())
+
+        if self.pixmap_history is not None:
+            for x, pixmap in enumerate(self.pixmap_history):
+                thumb_w = self.width() // self.pixmap_history.maxlen
+                thumb_h = 150 # pixmap.height() * thumb_w // self.pixmap.width() * 3
+                painter.drawPixmap(x * thumb_w, self.height() - thumb_h, thumb_w, thumb_h,
+                                   pixmap,
+                                   0, 0, pixmap.width(), pixmap.height())
 
 
 def parse_args(args):
@@ -183,6 +227,8 @@ def parse_args(args):
                         help="Seconds to wait between updates")
     parser.add_argument("-f", "--fullscreen", action="store_true", default=False,
                         help="Start in fullscreen mode")
+    parser.add_argument("-H", "--history", type=int, default=0,
+                        help="Amount of frames that should be kept in history")
     return parser.parse_args(args)
 
 
@@ -199,7 +245,7 @@ def main(argv):
     if args.outdir is not None:
         loader.set_output_directory(args.outdir)
 
-    win = ImgWatch(loader)
+    win = ImgWatch(loader, args.history)
     loader.set_win(win)
     loader.set_url(args.URL[0])
 
