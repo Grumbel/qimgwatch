@@ -20,6 +20,9 @@
 import argparse
 import signal
 import sys
+import datetime
+import logging
+import os
 
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtGui import QPainter, QPixmap
@@ -52,22 +55,45 @@ class ScreenMode:
 
 class ImageLoader:
 
-    def __init__(self, win, interval):
-        self.win = win
+    def __init__(self, interval):
+        self.win = None
+        self.interval = interval
         self.image_source_url = None
         self.network_reply = None
         self.instant_reload = False
+        self.output_directory = None
 
         self.netmgr = QNetworkAccessManager()
         self.netmgr.finished.connect(self._download_finished)
 
+    def set_win(self, win):
+        assert self.win is None
+        self.win = win
         self.timer = QTimer(self.win)
         self.timer.timeout.connect(self.reload_image)
-        self.timer.start(interval)
+        self.timer.start(self.interval)
 
     def set_url(self, url):
         self.image_source_url = url
         self.reload_image()
+
+    def set_output_directory(self, d):
+        self.output_directory = d
+
+        if not os.path.isdir(self.output_directory):
+            logging.info("creating %s", self.output_directory)
+            os.mkdir(self.output_directory)
+
+    def save_image(self, data):
+        if self.output_directory is None:
+            return
+
+        dt = datetime.datetime.utcnow()
+        filename = dt.strftime("%FT%T.%fZ") + ".jpg"
+        filename = os.path.join(self.output_directory, filename)
+        logging.info("writing %s", filename)
+        with open(filename, "wb") as fout:
+            fout.write(data)
 
     def _download_finished(self, reply):
         assert reply == self.network_reply
@@ -91,11 +117,11 @@ class ImageLoader:
 
 class ImgWatch(QWidget):
 
-    def __init__(self, interval):
+    def __init__(self, loader):
         super().__init__()
 
         self.screen_mode = ScreenMode(self)
-        self.image_loader = ImageLoader(self, interval)
+        self.image_loader = loader
 
         self.mpos = QPoint()
         self.pixmap = QPixmap()
@@ -152,6 +178,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(
         description="Image viewer that automatically reloads the image at a given interval")
     parser.add_argument("URL", nargs=1)
+    parser.add_argument("-o", "--outdir", metavar="DIRECTORY", type=str, default=None)
     parser.add_argument("-n", "--interval", metavar="SECONDS", type=float, default=0.5,
                         help="Seconds to wait between updates")
     parser.add_argument("-f", "--fullscreen", action="store_true", default=False,
@@ -160,13 +187,21 @@ def parse_args(args):
 
 
 def main(argv):
+    logging.basicConfig(level=logging.DEBUG)
+
     args = parse_args(argv[1:])
 
     interval_msec = int(1000 * args.interval)
 
     app = QApplication(sys.argv)
-    win = ImgWatch(interval_msec)
-    win.set_image_source_url(args.URL[0])
+
+    loader = ImageLoader(interval_msec)
+    if args.outdir is not None:
+        loader.set_output_directory(args.outdir)
+
+    win = ImgWatch(loader)
+    loader.set_win(win)
+    loader.set_url(args.URL[0])
 
     if args.fullscreen:
         win.screen_mode.fullscreen()
