@@ -20,19 +20,25 @@
 from setuptools import setup, find_packages
 
 
-setup(name='qimgwatch',
-      version='0.1.0',
-      scripts=[],
-      entry_points={
-          'console_scripts': [],
-          'gui_scripts': [
-              'qimgwatch = qimgwatch.cmd_qimgwatch:main_entrypoint',
-          ]
-      },
-      packages=['qimgwatch'],
-      install_requires=[
-          'PyQt5'
-      ]),
+setup(
+    name='qimgwatch',
+    version='0.1.0',
+
+    author="Ingo Ruhnke",
+    author_email="grumbel@gmail.com",
+    url="https://github.com/Grumbel/qimgwatch",
+
+    entry_points={
+        'console_scripts': [],
+        'gui_scripts': [
+            'qimgwatch = qimgwatch.cmd_qimgwatch:main_entrypoint',
+        ]
+    },
+    packages=['qimgwatch'],
+    install_requires=[
+        'PyQt5'
+    ]
+)
 
 
 # EOF #
