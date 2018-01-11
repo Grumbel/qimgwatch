@@ -29,7 +29,10 @@ setup(name='qimgwatch',
               'qimgwatch = qimgwatch.cmd_qimgwatch:main_entrypoint',
           ]
       },
-      packages=['qimgwatch'])
+      packages=['qimgwatch'],
+      install_requires=[
+          'PyQt5'
+      ]),
 
 
 # EOF #
