@@ -152,7 +152,7 @@ class ImgWatch(QWidget):
         if ev.key() == Qt.Key_F11 or ev.key() == Qt.Key_F:
             self.screen_mode.fullscreen_toggle()
         elif ev.key() == Qt.Key_Escape:
-            if self.screen_modev.is_fullscreen():
+            if self.screen_mode.is_fullscreen():
                 self.window()
         elif ev.key() == Qt.Key_Q:
             self.close()
@@ -187,7 +187,6 @@ class ImgWatch(QWidget):
         painter = QPainter(self)
         painter.setRenderHints(QPainter.Antialiasing | QPainter.SmoothPixmapTransform)
 
-
         if self.pixmap_idx is None or self.pixmap_history is None:
             pixmap = self.pixmap
         else:
@@ -212,7 +211,7 @@ class ImgWatch(QWidget):
         if self.pixmap_history is not None:
             for x, pixmap in enumerate(self.pixmap_history):
                 thumb_w = self.width() // self.pixmap_history.maxlen
-                thumb_h = 150 # pixmap.height() * thumb_w // self.pixmap.width() * 3
+                thumb_h = 150  # pixmap.height() * thumb_w // self.pixmap.width() * 3
                 painter.drawPixmap(x * thumb_w, self.height() - thumb_h, thumb_w, thumb_h,
                                    pixmap,
                                    0, 0, pixmap.width(), pixmap.height())
